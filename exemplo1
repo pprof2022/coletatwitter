@@ -1,0 +1,71 @@
+import tweepy 
+from tweepy import OAuthHandler
+from datetime import datetime
+import json
+
+import numpy as np
+import pandas as pd
+
+
+tfile = open('twitter_dados_acad.txt','r') 
+consumer_key = tfile.readline().strip('\n')
+consumer_secret = tfile.readline().strip('\n')
+access_token = tfile.readline().strip('\n')
+access_token_secret = tfile.readline().strip('\n')
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+
+api = tweepy.API(auth)
+
+try:
+    api.verify_credentials()
+    print("Authentication OK")
+except:
+    print("Error during authentication")
+
+
+query1="paper covid OR artigo covid OR #papercovid"
+
+pesquisa = api.search(q=query1, lang="pt", tweet_mode='extended', since=datetime(2022,6,1,0,0,0).date(), 
+until=datetime(2022,6,2, 0,0,0).date(), count=10000)
+
+
+contador = 0
+resultado = []
+
+for twitters in pesquisa:
+    resultado.append(twitters.created_at)
+    resultado.append(twitters.full_text)  
+    resultado.append(twitters.user.screen_name)
+    resultado.append(twitters.user.location)
+    resultado.append(twitters.favorite_count) 
+    resultado.append(twitters.retweeted)
+    resultado.append(twitters.retweet_count)
+
+ 
+matriz_np = np.array(resultado)
+matriz_ajustada = np.reshape(matriz_np, (contador,7))
+
+df = pd.DataFrame()
+
+colunas = [
+    'Data_publicacao',
+    'Texto_completo',
+    'Usuário',
+    'Localização',
+    'QTD_cutidas',
+    'Retweeted',
+    'QTD retweeted'
+ ]
+
+df = pd.DataFrame(matriz_ajustada,columns=colunas)
+
+datatoexcel = pd.ExcelWriter('Resultado_coleta.xlsx')
+df.to_excel(datatoexcel)
+datatoexcel.save()
+print('DataFrame is written to Excel File successfully.')
+
+print(df)
+
+
